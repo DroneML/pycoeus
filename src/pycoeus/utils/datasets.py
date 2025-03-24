@@ -41,8 +41,12 @@ def normalize_single_band_to_tensor(img_arr: np.ndarray, debug_note="") -> torch
     
     # Remove min and max values from the array
     img_arr_data = img_arr.flatten()
-    img_arr_data = img_arr_data[img_arr_data != img_arr_data.min()]
-    img_arr_data = img_arr_data[img_arr_data != img_arr_data.max()]
+    data_min = img_arr_data.min()
+    data_max = img_arr_data.max()
+
+    if data_min != data_max:
+        img_arr_data = img_arr_data[img_arr_data != data_min]
+        img_arr_data = img_arr_data[img_arr_data != data_max]
 
     std = img_arr_data.std()
     if std == 0:

@@ -114,8 +114,13 @@ def verify_normalized_ouput(normalized, expected_shape, expected_std=1.0):
     # Make consistant with the norm function, which removes min and max values
     normalized_numpy = normalized.numpy()
     normalized_numpy = normalized_numpy.flatten()
-    normalized_numpy = normalized_numpy[normalized_numpy != normalized_numpy.min()]
-    normalized_numpy = normalized_numpy[normalized_numpy != normalized_numpy.max()]
+    data_min = normalized_numpy.min()
+    data_max = normalized_numpy.max()
+
+    if data_min != data_max:
+        normalized_numpy = normalized_numpy[normalized_numpy != data_min]
+        normalized_numpy = normalized_numpy[normalized_numpy != data_max]
+
     # Check normalization (should have mean ~0 and std ~1)
     assert abs(normalized_numpy.mean()) < 1e-6  # Close to zero
     assert abs(normalized_numpy.std() - expected_std) < 1e-6  # Close to one
