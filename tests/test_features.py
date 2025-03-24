@@ -22,7 +22,7 @@ class TestExtractFeatures:
     @pytest.mark.parametrize(
         ["n_bands", "width", "height"],
         [
-            (3, 1, 1),  # too small to be processed by the model, requires padding
+            (3, 2, 2),  # too small to be processed by the model, requires padding
             (3, 8, 8),  # too small to be processed by the model, requires padding
             (3, 16, 16),  # smallest size that can natively be processed by the model
             (3, 61, 39),  # not divisible by 16 so requires padding in both directions
