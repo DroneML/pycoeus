@@ -43,7 +43,7 @@ license = {file = "LICENSE"}
 name = "pycoeus"
 readme = {file = "README.md", content-type = "text/markdown"}
 requires-python = ">=3.8"
-version = "0.4.1"
+version = "0.4.2"
 
 [project.optional-dependencies]
 train = [
@@ -150,7 +150,7 @@ force-single-line = true
 no-lines-before = ["future","standard-library","third-party","first-party","local-folder"]
 
 [tool.bumpversion]
-current_version = "0.4.1"
+current_version = "0.4.2"
 
 [[tool.bumpversion.files]]
 filename = "src/pycoeus/__init__.py"
