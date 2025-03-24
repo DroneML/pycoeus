@@ -153,14 +153,11 @@ def extract_flair_features(input_data: ndarray, model_scale=1.0) -> ndarray:
 
     outputs = []
     for i_band in range(n_bands):
-        # input_band = normalize_single_band_to_tensor(input_data[i_band:i_band + 1, :, :])[None, :, :, :].float().to(
-        #     device)
-        input_band = torch.from_numpy(input_data[None, i_band : i_band + 1, :, :]).float().to(device)
+        input_band = normalize_single_band_to_tensor(input_data[i_band:i_band + 1, :, :])[None, :, :, :].float().to(
+            device)
         padded_input = pad(input_band, band_name=i_band)
-        # padded_current_predictions = model(padded_input)
-        # current_predictions = unpad(padded_current_predictions, input_band.shape).detach().numpy()
-        padded_current_predictions = model(padded_input).detach().numpy()
-        current_predictions = padded_current_predictions[:, :, : input_band.shape[2], : input_band.shape[3]]  # unpad
+        padded_current_predictions = model(padded_input)
+        current_predictions = unpad(padded_current_predictions, input_band.shape).detach().numpy()
         outputs.append(current_predictions)
     output = np.concatenate(outputs, axis=1)
     return output[0, :, :, :]

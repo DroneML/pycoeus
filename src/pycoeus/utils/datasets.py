@@ -38,12 +38,19 @@ class MonochromeFlairDataset(Dataset):
         return min(len(self.images), self.limit)
 
 def normalize_single_band_to_tensor(img_arr: np.ndarray, debug_note="") -> torch.Tensor:
-    std = img_arr.std()
+    
+    # Remove min and max values from the array
+    img_arr_data = img_arr.flatten()
+    img_arr_data = img_arr_data[img_arr_data != img_arr_data.min()]
+    img_arr_data = img_arr_data[img_arr_data != img_arr_data.max()]
+
+    std = img_arr_data.std()
     if std == 0:
         msg = "Standard deviation = 0 " + debug_note
         logger.debug(msg)
         std = 1
-    normalized = (img_arr - img_arr.mean()) / std
+    mean = img_arr_data.mean()
+    normalized = (img_arr - mean) / std
     return torch.from_numpy(normalized)
 
 
