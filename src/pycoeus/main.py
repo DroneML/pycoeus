@@ -258,7 +258,7 @@ def parse_args():
         "-f",
         "--feature_type",
         type=FeatureType.from_string,
-        choices=list(FeatureType),
+        choices=[f.name for f in list(FeatureType)],
         default=FeatureType.FLAIR,
         help=f"Type of feature being used. Default: {FeatureType.FLAIR.name}",
     )
