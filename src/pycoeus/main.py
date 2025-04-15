@@ -180,10 +180,9 @@ def prepare_training_data(input_data, labels):
     flattened = class1_labels.flatten()
     positive_instances = input_data.reshape((input_data.shape[0], -1))[:, flattened == 1].transpose()
     negative_instances = input_data.reshape((input_data.shape[0], -1))[:, flattened == 0].transpose()
-    n_labeled = flattened.shape[0]
-    n_unlabeled = np.prod(labels.shape[-2:]) - n_labeled
+    n_total_instances = np.prod(labels.shape[-2:])
 
-    _validate_and_log_instance_numbers(negative_instances.shape[0], positive_instances.shape[0], n_labeled, n_unlabeled)
+    _validate_and_log_instance_numbers(negative_instances.shape[0], positive_instances.shape[0], n_total_instances)
     # Subsample training data
     sampled_positive_instances = _subsample(positive_instances, 10000)
     sampled_negative_instances = _subsample(negative_instances, 10000)
@@ -210,8 +209,10 @@ def prepare_training_data(input_data, labels):
     return train_data, train_labels
 
 
-def _validate_and_log_instance_numbers(n_negative, n_positive, n_labeled, n_unlabeled):
-    missing_msg = "Zero %s found in training data. Positive and negative labels are required for training a model."
+def _validate_and_log_instance_numbers(n_negative, n_positive, n_total_instances):
+    n_labeled = n_negative + n_positive
+    n_unlabeled = n_total_instances - n_labeled
+    missing_msg = "Zero %s found in training data. Positive and negative labels are required to train a model."
     if n_labeled == 0:
         raise ValueError(missing_msg % "labeled instances")
     if n_positive == 0:
