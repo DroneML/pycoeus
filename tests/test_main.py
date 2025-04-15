@@ -101,10 +101,10 @@ def test_prepare_training_data(array_type):
 ])
 def test_zero_positive_labels_raises_value_error(label_options):
     print(f"{label_options=}")
-    random = np.random.default_rng(0)
+    rng = np.random.default_rng(0)
     length = 200
-    random_data = random.integers(low=0, high=256, size=(5, length, length))
-    labels = random.choice(label_options, size=(1, length, length), replace=True)
+    random_data = rng.integers(low=0, high=256, size=(5, length, length))
+    labels = rng.choice(label_options, size=(1, length, length), replace=True)
 
     with pytest.raises(ValueError):
         prepare_training_data(random_data, labels)
