@@ -257,7 +257,7 @@ def parse_args():
     parser.add_argument(
         "-f",
         "--feature_type",
-        type=FeatureType.from_string,
+        type=str,
         choices=[f.name for f in list(FeatureType)],
         default=FeatureType.FLAIR,
         help=f"Type of feature being used. Default: {FeatureType.FLAIR.name}",
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     pos_labels_path = args.pos_labels
     neg_labels_path = args.neg_labels
     predictions_path = args.predictions
-    feature_type = args.feature_type
+    feature_type = FeatureType.from_string(args.feature_type)
     compute_mode = args.compute_mode
     chunk_overlap = args.chunk_overlap
     chunks = args.chunks
