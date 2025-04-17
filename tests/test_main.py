@@ -95,6 +95,20 @@ def test_prepare_training_data(array_type):
 
     prepare_training_data(input_data, labels)
 
+@pytest.mark.parametrize("label_options", [
+    [1,2],  # no negative labels
+    [0,2],  # no positive labels
+])
+def test_zero_positive_labels_raises_value_error(label_options):
+    print(f"{label_options=}")
+    rng = np.random.default_rng(0)
+    length = 200
+    random_data = rng.integers(low=0, high=256, size=(5, length, length))
+    labels = rng.choice(label_options, size=(1, length, length), replace=True)
+
+    with pytest.raises(ValueError):
+        prepare_training_data(random_data, labels)
+
 
 def train_predict_score(features, raster, tmpdir, use_case):
     pos_gdf = gpd.read_file(TEST_DATA_FOLDER / use_case.labels_pos_filename).to_crs(raster.rio.crs)

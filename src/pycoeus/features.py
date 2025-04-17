@@ -192,6 +192,7 @@ def load_model(model_scale: float, models_dir: Path = Path("models"), sources: t
                     surfdrive_file_id = {"flair_toy_ep10_scale1_0.pth": "JzDbL9KWWj5BmtR",
                            "flair_toy_ep15_scale1_0.pth": "zFuHOf3FQBcDzWE",
                            "flair_toy_ep15_scale0_25.pth": "dvASjEyGPRLBygX",
+                           "flair_toy_ep15_scale0_125.pth": "OQJDiqA0HpX0On6",
                                          }[file_name]
                     url = f"https://surfdrive.surf.nl/files/index.php/s/{surfdrive_file_id}/download"
                     wget.download(url, out=str(model_path))

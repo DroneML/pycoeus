@@ -180,14 +180,12 @@ def prepare_training_data(input_data, labels):
     flattened = class1_labels.flatten()
     positive_instances = input_data.reshape((input_data.shape[0], -1))[:, flattened == 1].transpose()
     negative_instances = input_data.reshape((input_data.shape[0], -1))[:, flattened == 0].transpose()
-    n_labeled = flattened.shape[0]
-    n_unlabeled = np.prod(labels.shape[-2:]) - n_labeled
-    logger.info(
-        f"Dataset contains {n_labeled} ({round(100 * n_labeled / (n_labeled + n_unlabeled), 2)}%) labeled instances of a total of {n_labeled + n_unlabeled} instances."
-    )
+    n_total_instances = np.prod(labels.shape[-2:])
+
+    _validate_and_log_instance_numbers(negative_instances.shape[0], positive_instances.shape[0], n_total_instances)
     # Subsample training data
-    sampled_positive_instances = subsample(positive_instances, 10000)
-    sampled_negative_instances = subsample(negative_instances, 10000)
+    sampled_positive_instances = _subsample(positive_instances, 10000)
+    sampled_negative_instances = _subsample(negative_instances, 10000)
     n_sampled_positive = sampled_positive_instances.shape[0]
     n_sampled_negative = sampled_negative_instances.shape[0]
     n_sampled_labeled = n_sampled_negative + n_sampled_positive
@@ -211,7 +209,22 @@ def prepare_training_data(input_data, labels):
     return train_data, train_labels
 
 
-def subsample(instances, sample_size):
+def _validate_and_log_instance_numbers(n_negative, n_positive, n_total_instances):
+    n_labeled = n_negative + n_positive
+    n_unlabeled = n_total_instances - n_labeled
+    missing_msg = "Zero %s found in training data. Positive and negative labels are required to train a model."
+    if n_labeled == 0:
+        raise ValueError(missing_msg % "labeled instances")
+    if n_positive == 0:
+        raise ValueError(missing_msg % "positive labeled instances")
+    if n_negative == 0:
+        raise ValueError(missing_msg % "negative labeled instances")
+    logger.info(
+        f"Dataset contains {n_labeled} ({round(100 * n_labeled / (n_labeled + n_unlabeled), 2)}%) labeled instances of a total of {n_labeled + n_unlabeled} instances."
+    )
+
+
+def _subsample(instances, sample_size):
     if isinstance(instances, da.Array):
         instances.compute_chunk_sizes()
     n_instances = instances.shape[0]
@@ -245,7 +258,7 @@ def _set_compute_mode(compute_mode: Literal["normal", "parallel", "safe"], chunk
     return dask_kwargs
 
 
-def parse_args():
+def _parse_args():
     parser = argparse.ArgumentParser(
         description="Classify pixels in the input image using a model trained on the labels."
     )
@@ -295,7 +308,7 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    args = _parse_args()
     input_path = args.input
     pos_labels_path = args.pos_labels
     neg_labels_path = args.neg_labels
