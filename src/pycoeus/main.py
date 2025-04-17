@@ -40,7 +40,7 @@ def read_input_and_labels_and_save_predictions(
     logger_root: logging.Logger = None,
     **extractor_kwargs,
 ) -> None:
-    # Hijack the global logger if a logger_root is provided
+    # Use the global logger if a logger_root is provided
     # This is designed to be used in QGIS environment
     if logger_root is not None:
         global logger
@@ -49,6 +49,9 @@ def read_input_and_labels_and_save_predictions(
     logger.info("read_input_and_labels_and_save_predictions called with the following arguments:")
     for k, v in locals().items():
         logger.info(f"{k}: {v}")
+
+    if pos_labels_path == neg_labels_path:
+        raise ValueError(f'Positive and negative labels must be different files, both were set to "{pos_labels_path}".')
 
     # Set compute mode, and get dask kwargs for reading raster data
     dask_kwargs = _set_compute_mode(compute_mode, chunks)
