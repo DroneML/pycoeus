@@ -31,7 +31,7 @@ def setup_logger(name: str = None, stdout_level=logging.INFO):
     stdout_sh.setFormatter(formatter)
 
     # Configure logger and add handlers
-    root_logger = logging.getLogger()
+    root_logger = logging.getLogger(name)
     root_logger.setLevel(logging.DEBUG)
     root_logger.addHandler(debug_fh)
     root_logger.addHandler(info_fh)
