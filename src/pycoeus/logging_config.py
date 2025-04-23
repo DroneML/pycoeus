@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-def setup_logger(name: str = None, stdout_level=logging.INFO):
+def setup_logger(logger: logging.Logger, stdout_level=logging.INFO):
     """
     Setup a logger with a specific name and logging level.
     """
@@ -31,13 +31,11 @@ def setup_logger(name: str = None, stdout_level=logging.INFO):
     stdout_sh.setFormatter(formatter)
 
     # Configure logger and add handlers
-    root_logger = logging.getLogger(name)
-    root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(debug_fh)
-    root_logger.addHandler(info_fh)
-    root_logger.addHandler(stdout_sh)
+    logger.addHandler(debug_fh)
+    logger.addHandler(info_fh)
+    logger.addHandler(stdout_sh)
 
-    return root_logger
+    return logger
 
 
 @contextmanager

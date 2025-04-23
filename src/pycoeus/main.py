@@ -23,8 +23,8 @@ from pycoeus.utils.io import read_geotiff, save_tiff
 from pycoeus.utils.geospatial import get_label_array
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger = setup_logger(__name__)
+if not logger.hasHandlers():
+    logger = setup_logger(logger) # add predefined handlers
 
 
 def read_input_and_labels_and_save_predictions(
@@ -40,11 +40,12 @@ def read_input_and_labels_and_save_predictions(
     logger_root: logging.Logger = None,
     **extractor_kwargs,
 ) -> None:
-    # Hijack the global logger if a logger_root is provided
-    # This is designed to be used in QGIS environment
+    # Overwrite with handlers (std and files) if root logger is provided
     if logger_root is not None:
-        global logger
-        logger = logger_root
+        for handler in logger.handlers:
+            logger.removeHandler(handler)
+        for handler in logger_root.handlers:
+            logger.addHandler(handler)
 
     logger.info("read_input_and_labels_and_save_predictions called with the following arguments:")
     for k, v in locals().items():
