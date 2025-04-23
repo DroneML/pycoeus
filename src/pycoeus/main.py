@@ -23,8 +23,7 @@ from pycoeus.utils.io import read_geotiff, save_tiff
 from pycoeus.utils.geospatial import get_label_array
 
 logger = logging.getLogger(__name__)
-if not logger.hasHandlers():
-    logger = setup_logger(logger) # add predefined handlers
+logger = setup_logger(logger)
 
 
 def read_input_and_labels_and_save_predictions(
@@ -37,14 +36,16 @@ def read_input_and_labels_and_save_predictions(
     compute_mode: Literal["normal", "parallel", "safe"] = "normal",
     chunks: dict = None,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
-    logger_root: logging.Logger = None,
+    logger_input: logging.Logger = None,
     **extractor_kwargs,
 ) -> None:
-    # Overwrite with handlers (std and files) if root logger is provided
-    if logger_root is not None:
+    # When logger_root is not None
+    # Attach handlers of logger_input to current logger
+    if logger_input is not None:
+        logger.setLevel(logger_input.level)
         for handler in logger.handlers:
             logger.removeHandler(handler)
-        for handler in logger_root.handlers:
+        for handler in logger_input.handlers:
             logger.addHandler(handler)
 
     logger.info("read_input_and_labels_and_save_predictions called with the following arguments:")
