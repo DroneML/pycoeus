@@ -11,7 +11,7 @@ import pandas as pd
 
 def setup_logger(logger: logging.Logger, stdout_level=logging.INFO):
     """
-    Setup a logger with a specific name and logging level.
+    Setup the input logger, add handlers and config logging level.
     """
 
     path = Path('log')
