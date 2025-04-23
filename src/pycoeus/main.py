@@ -52,6 +52,9 @@ def read_input_and_labels_and_save_predictions(
     for k, v in locals().items():
         logger.info(f"{k}: {v}")
 
+    if pos_labels_path == neg_labels_path:
+        raise ValueError(f'Positive and negative labels must be different files, both were set to "{pos_labels_path}".')
+
     # Set compute mode, and get dask kwargs for reading raster data
     dask_kwargs = _set_compute_mode(compute_mode, chunks)
 
