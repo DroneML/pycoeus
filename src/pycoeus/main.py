@@ -36,18 +36,8 @@ def read_input_and_labels_and_save_predictions(
     compute_mode: Literal["normal", "parallel", "safe"] = "normal",
     chunks: dict = None,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
-    logger_input: logging.Logger = None,
     **extractor_kwargs,
 ) -> None:
-    # When logger_root is not None
-    # Attach handlers of logger_input to current logger
-    if logger_input is not None:
-        logger.setLevel(logger_input.level)
-        for handler in logger.handlers:
-            logger.removeHandler(handler)
-        for handler in logger_input.handlers:
-            logger.addHandler(handler)
-
     logger.info("read_input_and_labels_and_save_predictions called with the following arguments:")
     for k, v in locals().items():
         logger.info(f"{k}: {v}")
