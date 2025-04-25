@@ -33,7 +33,7 @@ class MonochromeFlairDataset(Dataset):
 
     def __getitem__(self, index):
         img_arr = read_geotiff(self.images[index]).data
-        img = torch.from_numpy(img_arr[0], debug_note=f"path: {self.images[index]}")[None, :, :]
+        img = torch.from_numpy(normalize_single_band(img_arr[0]), debug_note=f"path: {self.images[index]}")[None, :, :]
         mask = load_and_one_hot_encode(self.masks[index])
         return img, mask
 
