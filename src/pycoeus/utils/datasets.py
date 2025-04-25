@@ -11,16 +11,19 @@ from pycoeus.utils.io import read_geotiff
 
 logger = setup_logger(__name__)
 
+
 class MonochromeFlairDataset(Dataset):
     def __init__(self, root_path, limit=None, split="train"):
         self.root_path = root_path
         self.limit = limit
-        self.images = sorted([str(p) for p in (Path(root_path) / split / "input").glob("*.tif")])[:self.limit]
+        self.images = sorted([str(p) for p in (Path(root_path) / split / "input").glob("*.tif")])[: self.limit]
 
         def image_path_to_mask_path(image_path: Path) -> Path:
-            return image_path.parent.parent / "labels" / f"MSK{image_path.stem[3:-2]}_0{image_path.suffix}"  # -2 for "_b" where b is band#
+            return (
+                image_path.parent.parent / "labels" / f"MSK{image_path.stem[3:-2]}_0{image_path.suffix}"
+            )  # -2 for "_b" where b is band#
 
-        self.masks = [str(image_path_to_mask_path(Path(p))) for p in self.images][:self.limit]
+        self.masks = [str(image_path_to_mask_path(Path(p))) for p in self.images][: self.limit]
         non_existing_masks = [p for p in self.masks if Path(p).exists() == False]
         if non_existing_masks:
             logging.getLogger().warning(f"{len(non_existing_masks)} of a total of {len(self.masks)} masks not found.")
@@ -30,15 +33,27 @@ class MonochromeFlairDataset(Dataset):
 
     def __getitem__(self, index):
         img_arr = read_geotiff(self.images[index]).data
-        img = normalize_single_band_to_tensor(img_arr[0], debug_note=f"path: {self.images[index]}")[None, :, :]
+        img = torch.from_numpy(img_arr[0], debug_note=f"path: {self.images[index]}")[None, :, :]
         mask = load_and_one_hot_encode(self.masks[index])
         return img, mask
 
     def __len__(self):
         return min(len(self.images), self.limit)
 
-def normalize_single_band_to_tensor(img_arr: np.ndarray, debug_note="") -> torch.Tensor:
-    
+
+def normalize_single_band(img_arr: np.ndarray, debug_note="") -> np.ndarray:
+    """normalize_single_band.
+
+    Normalizes a single band image array by removing the minimum and maximum values,
+    and then standardizing the data to have a mean of 0 and a standard deviation of 1.
+
+    Args:
+        img_arr (np.ndarray): The image array to be normalized.
+        debug_note (str, optional): Debug note for logging. Defaults to "".
+
+    Returns:
+        np.ndarray: The normalized image array.
+    """
     # Remove min and max values from the array
     img_arr_data = img_arr.flatten()
     data_min = img_arr_data.min()
@@ -54,8 +69,7 @@ def normalize_single_band_to_tensor(img_arr: np.ndarray, debug_note="") -> torch
         logger.debug(msg)
         std = 1
     mean = img_arr_data.mean()
-    normalized = (img_arr - mean) / std
-    return torch.from_numpy(normalized)
+    return (img_arr - mean) / std
 
 
 def load_and_one_hot_encode(image_path, num_classes=19):
@@ -71,7 +85,7 @@ def load_and_one_hot_encode(image_path, num_classes=19):
     """
     image = Image.open(image_path).convert("L")  # Load as grayscale
 
-    image_array = np.array(image, dtype=np.int64) -1  # -1 to convert to zero-based
+    image_array = np.array(image, dtype=np.int64) - 1  # -1 to convert to zero-based
     image_tensor = torch.from_numpy(image_array)
 
     one_hot = torch.nn.functional.one_hot(image_tensor, num_classes=num_classes)
