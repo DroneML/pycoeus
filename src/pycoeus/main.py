@@ -98,6 +98,12 @@ def read_input_and_labels_and_save_predictions(
     prediction_raster = raster.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
     prediction_raster.data = prediction_map
 
+    # Covert prediction_raster to xr.Dataset then preserve band names
+    prediction_raster = prediction_raster.assign_coords({"band": ["Negative", "Positive"]})
+    prediction_raster = prediction_raster.to_dataset(dim="band")
+    prediction_raster["Negative"].attrs["long_name"] = "Negative"
+    prediction_raster["Positive"].attrs["long_name"] = "Positive"
+
     # Save predictions
     prediction_raster.rio.to_raster(output_path)
 
@@ -127,13 +133,13 @@ def make_predictions(input_data: ndarray, labels: ndarray) -> ndarray:
 
     return prediction_map
 
+
 class ClassifierType(Enum):
     RANDOM_FOREST = 1
     XGBOOST = 2
     MLP = 3
     SVM = 4
     LOGISTIC_REGRESSION = 5
-
 
     @staticmethod
     def from_string(s):
@@ -142,7 +148,8 @@ class ClassifierType(Enum):
         except KeyError:
             raise ValueError()
 
-def get_classifier(classifier_type = ClassifierType.RANDOM_FOREST):
+
+def get_classifier(classifier_type=ClassifierType.RANDOM_FOREST):
     logger.info(f"Using classifier: {classifier_type.name}")
     if classifier_type == ClassifierType.RANDOM_FOREST:
         return RandomForestClassifier(n_estimators=100)
@@ -322,6 +329,12 @@ if __name__ == "__main__":
     chunks = args.chunks
 
     read_input_and_labels_and_save_predictions(
-        input_path, pos_labels_path, neg_labels_path, predictions_path, feature_type=feature_type,
-        chunks=chunks, chunk_overlap=chunk_overlap, compute_mode=compute_mode
+        input_path,
+        pos_labels_path,
+        neg_labels_path,
+        predictions_path,
+        feature_type=feature_type,
+        chunks=chunks,
+        chunk_overlap=chunk_overlap,
+        compute_mode=compute_mode,
     )
