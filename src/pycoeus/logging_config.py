@@ -14,16 +14,16 @@ def setup_logger(logger: logging.Logger, stdout_level=logging.INFO):
     Setup the input logger, add handlers and config logging level.
     """
 
-    path = Path('log')
+    path = Path("log")
     path.mkdir(exist_ok=True, parents=True)
 
     formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Create handlers
-    debug_fh = logging.handlers.RotatingFileHandler(path / 'debug.log', maxBytes=10 * 1024 * 1024, backupCount=5)
+    debug_fh = logging.handlers.RotatingFileHandler(path / "debug.log", maxBytes=10 * 1024 * 1024, backupCount=5)
     debug_fh.setLevel(logging.DEBUG)
     debug_fh.setFormatter(formatter)
-    info_fh = logging.handlers.RotatingFileHandler(path / 'info.log')
+    info_fh = logging.handlers.RotatingFileHandler(path / "info.log")
     info_fh.setLevel(logging.INFO)
     info_fh.setFormatter(formatter)
     stdout_sh = logging.StreamHandler(sys.stdout)
@@ -33,7 +33,18 @@ def setup_logger(logger: logging.Logger, stdout_level=logging.INFO):
     # Configure logger and add handlers
     logger.addHandler(debug_fh)
     logger.addHandler(info_fh)
-    logger.addHandler(stdout_sh)
+
+    # Loop through all parent loggers
+    # Check if stdout logger is already present
+    no_stdout_h = True # Flag
+    while logger.parent is not None:
+        # Check if stdout logger is already present
+        if not any(isinstance(h, logging.StreamHandler) and h.stream == sys.stdout for h in logger.handlers):
+            no_stdout_h = False
+            break
+    # Add stdout handler if not present
+    if no_stdout_h:
+        logger.addHandler(stdout_sh)
 
     return logger
 
@@ -50,5 +61,5 @@ def log_duration(task_name: str, logger: logging.Logger):
     logger.info(f"{task_name} finished in {duration:.4f} seconds")
 
 
-def log_array(data: np.ndarray, logger, array_name:str="array") -> None:
+def log_array(data: np.ndarray, logger, array_name: str = "array") -> None:
     logger.debug(f"{array_name} shape: {data.shape}")
