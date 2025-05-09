@@ -19,12 +19,12 @@ import logging
 
 from pycoeus.features import get_features, FeatureType, DEFAULT_CHUNK_OVERLAP
 from pycoeus.logging_config import setup_logger, log_duration, log_array
-from pycoeus.utils.io import read_geotiff, save_tiff
+from pycoeus.utils.io import read_geotiff
 from pycoeus.utils.geospatial import get_label_array
+from pycoeus.utils.datasets import normalize_single_band
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger = setup_logger(__name__)
+logger = setup_logger(logger)
 
 
 def read_input_and_labels_and_save_predictions(
@@ -37,15 +37,8 @@ def read_input_and_labels_and_save_predictions(
     compute_mode: Literal["normal", "parallel", "safe"] = "normal",
     chunks: dict = None,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
-    logger_root: logging.Logger = None,
     **extractor_kwargs,
 ) -> None:
-    # Use the global logger if a logger_root is provided
-    # This is designed to be used in QGIS environment
-    if logger_root is not None:
-        global logger
-        logger = logger_root
-
     logger.info("read_input_and_labels_and_save_predictions called with the following arguments:")
     for k, v in locals().items():
         logger.info(f"{k}: {v}")
@@ -73,9 +66,18 @@ def read_input_and_labels_and_save_predictions(
     except ImportError:
         logger.info("Used rioxarray to read the crs")
 
+    # Normalize the raster data per band
+    raster_norm = xr.apply_ufunc(
+        normalize_single_band,
+        raster,
+        input_core_dims=[["band"]],
+        output_core_dims=[["band"]],
+        dask="allowed",
+    ).transpose(*raster.dims)
+
     # Extract features
     features = get_features(
-        raster,
+        raster_norm,
         raster_path,
         feature_type,
         features_path,
@@ -85,8 +87,8 @@ def read_input_and_labels_and_save_predictions(
     )
 
     # Load vector labels as geodataframes, and align CRS with input data
-    pos_gdf = gpd.read_file(pos_labels_path).to_crs(raster.rio.crs)
-    neg_gdf = gpd.read_file(neg_labels_path).to_crs(raster.rio.crs)
+    pos_gdf = gpd.read_file(pos_labels_path).to_crs(raster_norm.rio.crs)
+    neg_gdf = gpd.read_file(neg_labels_path).to_crs(raster_norm.rio.crs)
 
     # Get label arrays
     labels = get_label_array(features, pos_gdf, neg_gdf, compute_mode=compute_mode)
@@ -95,8 +97,14 @@ def read_input_and_labels_and_save_predictions(
     prediction_map = make_predictions(features.data, labels.data)
 
     # Use raster as the template and assign data
-    prediction_raster = raster.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
+    prediction_raster = raster_norm.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
     prediction_raster.data = prediction_map
+
+    # Convert prediction_raster to xr.Dataset then preserve band names
+    prediction_raster = prediction_raster.assign_coords({"band": ["Negative", "Positive"]})
+    prediction_raster = prediction_raster.to_dataset(dim="band")
+    prediction_raster["Negative"].attrs["long_name"] = "Negative"
+    prediction_raster["Positive"].attrs["long_name"] = "Positive"
 
     # Save predictions
     prediction_raster.rio.to_raster(output_path)
@@ -127,13 +135,13 @@ def make_predictions(input_data: ndarray, labels: ndarray) -> ndarray:
 
     return prediction_map
 
+
 class ClassifierType(Enum):
     RANDOM_FOREST = 1
     XGBOOST = 2
     MLP = 3
     SVM = 4
     LOGISTIC_REGRESSION = 5
-
 
     @staticmethod
     def from_string(s):
@@ -142,7 +150,8 @@ class ClassifierType(Enum):
         except KeyError:
             raise ValueError()
 
-def get_classifier(classifier_type = ClassifierType.RANDOM_FOREST):
+
+def get_classifier(classifier_type=ClassifierType.RANDOM_FOREST):
     logger.info(f"Using classifier: {classifier_type.name}")
     if classifier_type == ClassifierType.RANDOM_FOREST:
         return RandomForestClassifier(n_estimators=100)
@@ -321,7 +330,16 @@ if __name__ == "__main__":
     chunk_overlap = args.chunk_overlap
     chunks = args.chunks
 
+    # Set up logging
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
     read_input_and_labels_and_save_predictions(
-        input_path, pos_labels_path, neg_labels_path, predictions_path, feature_type=feature_type,
-        chunks=chunks, chunk_overlap=chunk_overlap, compute_mode=compute_mode
+        input_path,
+        pos_labels_path,
+        neg_labels_path,
+        predictions_path,
+        feature_type=feature_type,
+        chunks=chunks,
+        chunk_overlap=chunk_overlap,
+        compute_mode=compute_mode,
     )

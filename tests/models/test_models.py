@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torchinfo import summary
 
-from pycoeus.utils.datasets import normalize_single_band_to_tensor
+from pycoeus.utils.datasets import normalize_single_band
 from pycoeus.utils.models import UNet
 from tests.utils import TEST_DATA_FOLDER
 
@@ -90,7 +90,7 @@ def test_normalize_single_band_to_tensor_uint8_array():
     # Regular array with non-zero mean and std
     test_array = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
 
-    normalized = normalize_single_band_to_tensor(test_array)
+    normalized = torch.from_numpy(normalize_single_band(test_array))
 
     expected_shape = test_array.shape
     verify_normalized_ouput(normalized, expected_shape)
@@ -101,7 +101,7 @@ def test_normalize_single_band_to_tensor_regular_array():
     # Regular array with non-zero mean and std
     test_array = np.random.rand(100, 100) * 10 + 5  # Values between 5 and 15
 
-    normalized = normalize_single_band_to_tensor(test_array)
+    normalized = torch.from_numpy(normalize_single_band(test_array))
 
     expected_shape = test_array.shape
     verify_normalized_ouput(normalized, expected_shape)
