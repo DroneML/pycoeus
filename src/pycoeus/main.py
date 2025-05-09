@@ -19,8 +19,9 @@ import logging
 
 from pycoeus.features import get_features, FeatureType, DEFAULT_CHUNK_OVERLAP
 from pycoeus.logging_config import setup_logger, log_duration, log_array
-from pycoeus.utils.io import read_geotiff, save_tiff
+from pycoeus.utils.io import read_geotiff
 from pycoeus.utils.geospatial import get_label_array
+from pycoeus.utils.datasets import normalize_single_band
 
 logger = logging.getLogger(__name__)
 logger = setup_logger(logger)
@@ -65,9 +66,18 @@ def read_input_and_labels_and_save_predictions(
     except ImportError:
         logger.info("Used rioxarray to read the crs")
 
+    # Normalize the raster data per band
+    raster_norm = xr.apply_ufunc(
+        normalize_single_band,
+        raster,
+        input_core_dims=[["band"]],
+        output_core_dims=[["band"]],
+        dask="allowed",
+    ).transpose(*raster.dims)
+
     # Extract features
     features = get_features(
-        raster,
+        raster_norm,
         raster_path,
         feature_type,
         features_path,
@@ -77,8 +87,8 @@ def read_input_and_labels_and_save_predictions(
     )
 
     # Load vector labels as geodataframes, and align CRS with input data
-    pos_gdf = gpd.read_file(pos_labels_path).to_crs(raster.rio.crs)
-    neg_gdf = gpd.read_file(neg_labels_path).to_crs(raster.rio.crs)
+    pos_gdf = gpd.read_file(pos_labels_path).to_crs(raster_norm.rio.crs)
+    neg_gdf = gpd.read_file(neg_labels_path).to_crs(raster_norm.rio.crs)
 
     # Get label arrays
     labels = get_label_array(features, pos_gdf, neg_gdf, compute_mode=compute_mode)
@@ -87,7 +97,7 @@ def read_input_and_labels_and_save_predictions(
     prediction_map = make_predictions(features.data, labels.data)
 
     # Use raster as the template and assign data
-    prediction_raster = raster.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
+    prediction_raster = raster_norm.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
     prediction_raster.data = prediction_map
 
     # Save predictions

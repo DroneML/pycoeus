@@ -14,7 +14,6 @@ from huggingface_hub import hf_hub_download
 from numpy import ndarray
 
 from pycoeus.logging_config import log_duration, log_array
-from pycoeus.utils.datasets import normalize_single_band_to_tensor
 from pycoeus.utils.models import UNet
 
 NUM_FLAIR_CLASSES = 19
@@ -153,8 +152,7 @@ def extract_flair_features(input_data: ndarray, model_scale=1.0) -> ndarray:
 
     outputs = []
     for i_band in range(n_bands):
-        input_band = normalize_single_band_to_tensor(input_data[i_band:i_band + 1, :, :])[None, :, :, :].float().to(
-            device)
+        input_band = torch.from_numpy(input_data[i_band : i_band + 1, :, :])[None, :, :, :].float().to(device)
         padded_input = pad(input_band, band_name=i_band)
         padded_current_predictions = model(padded_input)
         current_predictions = unpad(padded_current_predictions, input_band.shape).detach().numpy()
@@ -163,8 +161,9 @@ def extract_flair_features(input_data: ndarray, model_scale=1.0) -> ndarray:
     return output[0, :, :, :]
 
 
-def load_model(model_scale: float, models_dir: Path = Path("models"), sources: tuple[str] = None) -> tuple[
-    UNet, torch.device]:
+def load_model(
+    model_scale: float, models_dir: Path = Path("models"), sources: tuple[str] = None
+) -> tuple[UNet, torch.device]:
     """
     Load the model from disk and return it along with the device it's loaded on to.
     :param model_scale: Scale of the model to use. Must be one of [1.0, 0.5, 0.25, 0.125]
@@ -189,11 +188,12 @@ def load_model(model_scale: float, models_dir: Path = Path("models"), sources: t
             if s == "Surfdrive":
                 try:
                     logger.info(f"Model not found at '{model_path}', downloading from Surfdrive")
-                    surfdrive_file_id = {"flair_toy_ep10_scale1_0.pth": "JzDbL9KWWj5BmtR",
-                           "flair_toy_ep15_scale1_0.pth": "zFuHOf3FQBcDzWE",
-                           "flair_toy_ep15_scale0_25.pth": "dvASjEyGPRLBygX",
-                           "flair_toy_ep15_scale0_125.pth": "OQJDiqA0HpX0On6",
-                                         }[file_name]
+                    surfdrive_file_id = {
+                        "flair_toy_ep10_scale1_0.pth": "JzDbL9KWWj5BmtR",
+                        "flair_toy_ep15_scale1_0.pth": "zFuHOf3FQBcDzWE",
+                        "flair_toy_ep15_scale0_25.pth": "dvASjEyGPRLBygX",
+                        "flair_toy_ep15_scale0_125.pth": "OQJDiqA0HpX0On6",
+                    }[file_name]
                     url = f"https://surfdrive.surf.nl/files/index.php/s/{surfdrive_file_id}/download"
                     wget.download(url, out=str(model_path))
                 except Exception as e:
@@ -234,8 +234,8 @@ def pad(input_band: torch.Tensor, band_name):
     return padded
 
 
-def calculate_pad_sizes_1d(dim_size: int)->tuple[int, int]:
-    """"
+def calculate_pad_sizes_1d(dim_size: int) -> tuple[int, int]:
+    """ "
     Calculate the padding sizes needed to make a dimension size divisible by 16.
 
     This function computes the amount of padding required before and after the given dimension size
@@ -253,7 +253,7 @@ def calculate_pad_sizes_1d(dim_size: int)->tuple[int, int]:
     return pad_before, pad_after
 
 
-def unpad(padded_band:torch.Tensor, original_size):
+def unpad(padded_band: torch.Tensor, original_size):
     """
     Remove padding from the input band to restore its original size.
 
@@ -266,10 +266,11 @@ def unpad(padded_band:torch.Tensor, original_size):
     Returns:
     torch.Tensor: The unpadded input band tensor.
     """
-    _,_, original_height, original_width = original_size
+    _, _, original_height, original_width = original_size
     pad_top, pad_bottom = calculate_pad_sizes_1d(original_height)
     pad_left, pad_right = calculate_pad_sizes_1d(original_width)
-    return padded_band[:, :, pad_top:pad_top + original_height, pad_left:pad_left + original_width]
+    return padded_band[:, :, pad_top : pad_top + original_height, pad_left : pad_left + original_width]
+
 
 def get_flair_model_file_name(model_scale: float) -> str:
     scale_mapping = {1.0: "1_0", 0.5: "0_5", 0.25: "0_25", 0.125: "0_125"}
