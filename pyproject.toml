@@ -42,7 +42,7 @@ keywords = ["Segmentation"," UNet"," Active learning"," Drone"," Raster data"," 
 license = {file = "LICENSE"}
 name = "pycoeus"
 readme = {file = "README.md", content-type = "text/markdown"}
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 version = "0.5.0"
 
 [project.optional-dependencies]
