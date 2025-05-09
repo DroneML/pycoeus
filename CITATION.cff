@@ -14,7 +14,7 @@ authors:
     affiliation: Netherlands eScience Center
     orcid: 'https://orcid.org/0000-0002-5373-5209'
 date-released: 2024-10-08
-version: "0.5.0"
+version: "0.6.0"
 repository-code: "https://github.com/DroneML/pycoeus"
 keywords:
   - "Segmentation"
