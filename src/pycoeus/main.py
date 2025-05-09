@@ -100,6 +100,12 @@ def read_input_and_labels_and_save_predictions(
     prediction_raster = raster_norm.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
     prediction_raster.data = prediction_map
 
+    # Convert prediction_raster to xr.Dataset then preserve band names
+    prediction_raster = prediction_raster.assign_coords({"band": ["Negative", "Positive"]})
+    prediction_raster = prediction_raster.to_dataset(dim="band")
+    prediction_raster["Negative"].attrs["long_name"] = "Negative"
+    prediction_raster["Positive"].attrs["long_name"] = "Positive"
+
     # Save predictions
     prediction_raster.rio.to_raster(output_path)
 
