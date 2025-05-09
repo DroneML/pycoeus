@@ -23,8 +23,7 @@ from pycoeus.utils.io import read_geotiff, save_tiff
 from pycoeus.utils.geospatial import get_label_array
 
 logger = logging.getLogger(__name__)
-if not logger.handlers:
-    logger = setup_logger(__name__)
+logger = setup_logger(logger)
 
 
 def read_input_and_labels_and_save_predictions(
@@ -37,15 +36,8 @@ def read_input_and_labels_and_save_predictions(
     compute_mode: Literal["normal", "parallel", "safe"] = "normal",
     chunks: dict = None,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
-    logger_root: logging.Logger = None,
     **extractor_kwargs,
 ) -> None:
-    # Use the global logger if a logger_root is provided
-    # This is designed to be used in QGIS environment
-    if logger_root is not None:
-        global logger
-        logger = logger_root
-
     logger.info("read_input_and_labels_and_save_predictions called with the following arguments:")
     for k, v in locals().items():
         logger.info(f"{k}: {v}")
@@ -127,13 +119,13 @@ def make_predictions(input_data: ndarray, labels: ndarray) -> ndarray:
 
     return prediction_map
 
+
 class ClassifierType(Enum):
     RANDOM_FOREST = 1
     XGBOOST = 2
     MLP = 3
     SVM = 4
     LOGISTIC_REGRESSION = 5
-
 
     @staticmethod
     def from_string(s):
@@ -142,7 +134,8 @@ class ClassifierType(Enum):
         except KeyError:
             raise ValueError()
 
-def get_classifier(classifier_type = ClassifierType.RANDOM_FOREST):
+
+def get_classifier(classifier_type=ClassifierType.RANDOM_FOREST):
     logger.info(f"Using classifier: {classifier_type.name}")
     if classifier_type == ClassifierType.RANDOM_FOREST:
         return RandomForestClassifier(n_estimators=100)
@@ -321,7 +314,16 @@ if __name__ == "__main__":
     chunk_overlap = args.chunk_overlap
     chunks = args.chunks
 
+    # Set up logging
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
     read_input_and_labels_and_save_predictions(
-        input_path, pos_labels_path, neg_labels_path, predictions_path, feature_type=feature_type,
-        chunks=chunks, chunk_overlap=chunk_overlap, compute_mode=compute_mode
+        input_path,
+        pos_labels_path,
+        neg_labels_path,
+        predictions_path,
+        feature_type=feature_type,
+        chunks=chunks,
+        chunk_overlap=chunk_overlap,
+        compute_mode=compute_mode,
     )

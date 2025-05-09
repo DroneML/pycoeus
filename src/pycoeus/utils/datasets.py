@@ -6,10 +6,9 @@ import torch
 from PIL import Image
 from torch.utils.data import Dataset
 
-from pycoeus.logging_config import setup_logger
 from pycoeus.utils.io import read_geotiff
 
-logger = setup_logger(__name__)
+logger = logging.getLogger(__name__)
 
 class MonochromeFlairDataset(Dataset):
     def __init__(self, root_path, limit=None, split="train"):
@@ -23,7 +22,7 @@ class MonochromeFlairDataset(Dataset):
         self.masks = [str(image_path_to_mask_path(Path(p))) for p in self.images][:self.limit]
         non_existing_masks = [p for p in self.masks if Path(p).exists() == False]
         if non_existing_masks:
-            logging.getLogger().warning(f"{len(non_existing_masks)} of a total of {len(self.masks)} masks not found.")
+            logger.warning(f"{len(non_existing_masks)} of a total of {len(self.masks)} masks not found.")
 
         if self.limit is None:
             self.limit = len(self.images)
