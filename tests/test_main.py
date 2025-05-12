@@ -2,21 +2,17 @@ import shutil
 from pathlib import Path
 
 import dask.array as da
-import numpy as np
-import pandas as pd
-import pytest
-import rasterio
-import rioxarray
-from scipy.spatial.distance import dice
 import geopandas as gpd
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+import numpy as np
+import pytest
+import rioxarray
 import xarray as xr
-from pycoeus.features import FeatureType, get_features_path, get_features
+from scipy.spatial.distance import dice
+
+from pycoeus.features import FeatureType, get_features_path
 from pycoeus.main import read_input_and_labels_and_save_predictions, prepare_training_data, make_predictions
-from pycoeus.utils.geospatial import get_label_array
-from pycoeus.utils.io import save_tiff
 from pycoeus.utils.datasets import normalize_single_band
+from pycoeus.utils.geospatial import get_label_array
 from .test_cases import TestCase, test_case1210, test_case512
 from .utils import TEST_DATA_FOLDER
 
@@ -52,17 +48,20 @@ def test_integration(tmpdir, test_case: TestCase, feature_type, model_scale, dic
     predictions_path = (
         Path(tmpdir) / f"{test_case.image_filename}_predictions_{str(feature_type)}_model_{model_scale}.tif"
     )
+    classifier_path = (Path(tmpdir) / f"{test_case512.image_filename}_classifier.pkl")
 
     read_input_and_labels_and_save_predictions(
         input_path,
         labels_pos_path,
         labels_neg_path,
+        classifier_path,
         predictions_path,
         feature_type=feature_type,
         model_scale=model_scale,
     )
 
     assert predictions_path.exists()
+    assert classifier_path.exists()
 
     # Check DICE similarity if threshold is provided
     if dice_similarity_threshold is None and test_case.ground_truth_filename is None:

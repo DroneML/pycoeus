@@ -1,27 +1,27 @@
 import argparse
+import logging
+import pickle
 from enum import Enum
 from pathlib import Path
 from typing import Literal
 
-import numpy as np
+import dask
 import dask.array as da
+import geopandas as gpd
+import numpy as np
+import xarray as xr
 from numpy import ndarray
 from sklearn.ensemble import RandomForestClassifier
-import geopandas as gpd
-import rioxarray
-import dask
-import xarray as xr
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from xgboost import XGBClassifier
-import logging
 
 from pycoeus.features import get_features, FeatureType, DEFAULT_CHUNK_OVERLAP
 from pycoeus.logging_config import setup_logger, log_duration, log_array
-from pycoeus.utils.io import read_geotiff
-from pycoeus.utils.geospatial import get_label_array
 from pycoeus.utils.datasets import normalize_single_band
+from pycoeus.utils.geospatial import get_label_array
+from pycoeus.utils.io import read_geotiff
 
 logger = logging.getLogger(__name__)
 logger = setup_logger(logger)
@@ -32,6 +32,7 @@ def read_input_and_labels_and_save_predictions(
     pos_labels_path: Path,
     neg_labels_path: Path,
     output_path: Path,
+    classifier_path: Path = None,
     feature_type=FeatureType.IDENTITY,
     features_path: Path = None,
     compute_mode: Literal["normal", "parallel", "safe"] = "normal",
@@ -94,7 +95,7 @@ def read_input_and_labels_and_save_predictions(
     labels = get_label_array(features, pos_gdf, neg_gdf, compute_mode=compute_mode)
 
     # Make predictions
-    prediction_map = make_predictions(features.data, labels.data)
+    prediction_map = make_predictions(features.data, labels.data, classifier_path=classifier_path)
 
     # Use raster as the template and assign data
     prediction_raster = raster_norm.isel(band=0).drop_vars(["band"]).expand_dims(band=prediction_map.shape[0])
@@ -112,10 +113,11 @@ def read_input_and_labels_and_save_predictions(
     return output_path
 
 
-def make_predictions(input_data: ndarray, labels: ndarray) -> ndarray:
+def make_predictions(input_data: ndarray, labels: ndarray, classifier_path:Path=None) -> ndarray:
     """Makes predictions by training a classifier and using it for inference.
 
     Expects input data with shape of [channels, width, height] and labels of shape [classes, width, height]
+        :param classifier_path: path to which the classifier will be saved
         :param input_data: input data with shape of [channels, width, height]
         :param labels: labels with shape [1, width, height]
     :return: probabilities with shape [class_values, width, height]
@@ -127,6 +129,10 @@ def make_predictions(input_data: ndarray, labels: ndarray) -> ndarray:
 
     with log_duration("Train model", logger):
         classifier.fit(train_data, train_labels)
+
+    with open(classifier_path, "wb") as f:
+        pickle.dump(classifier, f)
+    logger.info(f"Classifier saved to {classifier_path}")
 
     with log_duration("Make predictions", logger):
         predictions = classifier.predict_proba(input_data.reshape((input_data.shape[0], -1)).transpose())
@@ -279,6 +285,7 @@ def _parse_args():
     parser.add_argument("-lp", "--pos_labels", type=Path, help="Path to the positive training labels file, shp or gpkg")
     parser.add_argument("-ln", "--neg_labels", type=Path, help="Path to the negative training labels file, shp or gpkg")
     parser.add_argument("-p", "--predictions", type=Path, help="Path to the predictions output TIFF file")
+    parser.add_argument("-c", "--classifier", type=Path, help="Path to write the classifier to")
     parser.add_argument(
         "-f",
         "--feature_type",
@@ -325,6 +332,7 @@ if __name__ == "__main__":
     pos_labels_path = args.pos_labels
     neg_labels_path = args.neg_labels
     predictions_path = args.predictions
+    predictions_path = args.classifier
     feature_type = FeatureType.from_string(args.feature_type)
     compute_mode = args.compute_mode
     chunk_overlap = args.chunk_overlap
@@ -337,6 +345,7 @@ if __name__ == "__main__":
         input_path,
         pos_labels_path,
         neg_labels_path,
+        classifier_path,
         predictions_path,
         feature_type=feature_type,
         chunks=chunks,
